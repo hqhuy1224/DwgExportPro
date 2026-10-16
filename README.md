@@ -1,109 +1,109 @@
 # DwgExportPro
 
-Công cụ xuất hàng loạt bản vẽ AutoCAD (DWG/DXF) sang **PDF** hoặc **PNG** — cho phép chọn layout riêng cho từng bản vẽ, xử lý hàng loạt file trong cả thư mục và tự động chạy mà không cần giám sát liên tục.
+Batch-export AutoCAD drawings (DWG/DXF) to **PDF** or **PNG** — select a layout for each drawing, process entire folders in batches, and run unattended.
 
-DwgExportPro mở từng bản vẽ thông qua cơ chế tự động hóa COM của AutoCAD, tính toán phạm vi thực tế của bản vẽ (loại bỏ các đối tượng bất thường hoặc ngoại lai để tránh trường hợp block đặt sai vị trí hay đường thẳng vô hạn làm sai lệch kết quả), căn giữa vùng in và xuất sang PDF hoặc PNG. Nếu kết quả xuất bị trắng, công cụ sẽ tự động thử lại bằng các phương án dự phòng.
+DwgExportPro opens each drawing through AutoCAD COM automation, calculates the actual drawing extents (filtering outliers and abnormal geometry to prevent misplaced blocks or infinite lines from distorting the output), centers the plot area, and exports to PDF or PNG. If the output is blank, the tool automatically retries using fallback methods.
 
-> Được phát triển dựa trên bộ máy xử lý hàng loạt **ScriptPro** nguyên bản do Autodesk Developer Network phát hành, sau đó được viết lại với quy trình xuất PDF/PNG chuyên biệt và lớp tự động hóa AutoCAD COM đáng tin cậy hơn. Xem mục [Ghi nhận đóng góp](#ghi-nhan-dong-gop).
+> Built on the original **ScriptPro** batch-processing engine released by Autodesk Developer Network, with a dedicated PDF/PNG export pipeline and a more reliable AutoCAD COM automation layer. See [Credits](#credits).
 
 ---
 
-## Tính năng
+## Features
 
-- **Xuất hàng loạt PDF/PNG** — thêm số lượng tùy ý bản vẽ DWG/DXF vào danh sách và xuất trong một lần chạy.
-- **Chọn layout riêng cho từng bản vẽ** — chọn Model hoặc bất kỳ layout nào trong Paper Space cho từng file.
-- **Tự động xác định vùng in thông minh** — tính toán khung bao thực tế của từng bản vẽ thay vì phụ thuộc vào thiết lập vùng in cố định `Extents` hoặc `Display`:
-  - Thu thập khung bao của tất cả đối tượng hiển thị và được phép in.
-  - Loại bỏ các đối tượng ngoại lai bằng bộ lọc thống kê Median + MAD (độ lệch tuyệt đối trung vị), giúp các block đặt sai vị trí hoặc kích thước ghi chú nằm quá xa không làm thu nhỏ bản vẽ chính.
-  - Giữ lại các đối tượng có kích thước lớn như khung bản vẽ, khung tên ngay cả khi tâm của chúng nằm lệch khỏi cụm đối tượng chính.
-  - Thêm lề nhỏ và căn giữa bản vẽ trong vùng in.
-- **Tự động chuyển sang phương án dự phòng** — nếu kết quả xuất bị trắng (được kiểm tra bằng tỷ lệ điểm ảnh có nội dung đối với PNG), công cụ lần lượt thử lại với `Extents`, sau đó `Display` trước khi xác định thất bại.
-- **Tự động hóa AutoCAD đáng tin cậy hơn** — chạy trên một luồng STA chuyên biệt và đăng ký COM Message Filter, hạn chế các lỗi `RPC_E_SERVERCALL_RETRYLATER` và lỗi ứng dụng đang bận trong quá trình xử lý hàng loạt kéo dài.
-- **Xác minh kết quả xuất qua file thực tế** — chỉ đánh dấu bản vẽ là `Done` khi file đầu ra thực sự tồn tại và có dữ liệu, thay vì chỉ dựa vào việc AutoCAD kết thúc mà không phát sinh ngoại lệ.
-- **Tự kết nối hoặc khởi chạy AutoCAD** — tái sử dụng phiên AutoCAD đang chạy nếu có và giữ nguyên phiên đó sau khi hoàn tất; nếu chưa có, công cụ tự khởi chạy và quản lý phiên AutoCAD riêng để xử lý tự động.
-- **Tự động khởi động lại AutoCAD** sau mỗi N bản vẽ nhằm kiểm soát mức sử dụng bộ nhớ khi xử lý các lô file lớn.
-- **Lưu và tái sử dụng cấu hình dự án** (`.bpl`) — lưu danh sách bản vẽ cùng các thiết lập để chạy lại sau này, kể cả thông qua dòng lệnh.
-- **Nhập dự án ScriptPro cũ** — đọc được các file dự án ScriptPro (`.scp`) để hỗ trợ chuyển đổi sang định dạng mới.
-- **Chạy qua dòng lệnh hoặc chế độ không giám sát** — thực thi dự án đã lưu từ file batch hoặc Windows Task Scheduler, hỗ trợ tự động thoát sau khi hoàn tất.
+- **Batch PDF/PNG export** — queue any number of DWG/DXF drawings and export them in a single run.
+- **Per-drawing layout selection** — select Model or any Paper Space layout independently for each file.
+- **Smart plot-area detection** — calculates the actual drawing bounds for each drawing instead of relying on AutoCAD's fixed `Extents` or `Display` plot-area settings:
+  - Collects the bounding boxes of all visible, plottable entities.
+  - Filters outliers using the Median + MAD (median absolute deviation) statistical method, preventing misplaced blocks or distant dimensions from shrinking the main drawing.
+  - Preserves large entities, such as drawing borders and title blocks, even when their centers are offset from the main cluster.
+  - Adds a small margin and centers the drawing within the plot area.
+- **Automatic fallback** — if the output is blank (detected using the pixel-ink ratio for PNG files), the tool retries with `Extents`, followed by `Display`, before reporting failure.
+- **More reliable AutoCAD automation** — runs on a dedicated STA thread and registers a COM Message Filter to mitigate `RPC_E_SERVERCALL_RETRYLATER` and application-busy errors during long batch-processing sessions.
+- **File-verified export status** — a drawing is marked `Done` only when the output file actually exists and contains data, rather than simply because AutoCAD returned without throwing an exception.
+- **Attach to or launch AutoCAD** — reuses an existing AutoCAD instance when available and leaves it running afterward; otherwise, launches and manages its own AutoCAD instance for unattended processing.
+- **Automatic AutoCAD restart** — restarts AutoCAD after every N drawings to help control memory usage during large batch runs.
+- **Reusable project files** (`.bpl`) — save drawing lists and settings for later reuse, including command-line execution.
+- **Legacy ScriptPro project import** — reads older ScriptPro (`.scp`) project files to facilitate migration.
+- **Command-line and unattended execution** — runs saved projects from batch files or Windows Task Scheduler, with an option to exit automatically when processing is complete.
 
-## Yêu cầu hệ thống
+## System Requirements
 
-- Windows 10/11, phiên bản 64-bit.
-- AutoCAD 2022 trở lên (phạm vi phiên bản đã được kiểm thử chính thức; các phiên bản cũ hơn có hỗ trợ COM có thể hoạt động nhưng không được hỗ trợ chính thức).
+- Windows 10/11, 64-bit.
+- AutoCAD 2022 or later (the officially tested version range; older versions with COM support may work but are not officially supported).
 - .NET 8.0 Desktop Runtime (x64).
-- AutoCAD đã được cài đặt và có giấy phép hợp lệ trên máy chạy công cụ.
+- A licensed copy of AutoCAD installed on the machine running the tool.
 
-## Cài đặt
+## Installation
 
-**Sử dụng bản Portable:**
+**Portable version:**
 
-Giải nén thư mục build và chạy trực tiếp `DwgExportProUI.exe` — không cần cài đặt.
+Extract the build output and run `DwgExportProUI.exe` directly — no installation required.
 
-## Hướng dẫn sử dụng
+## Usage
 
-1. Thêm bản vẽ bằng nút **Add** (thêm file riêng lẻ) hoặc **Add From Folder** (thêm từ thư mục, có thể bao gồm các thư mục con).
-2. Chọn layout cần xuất cho từng bản vẽ trong bảng danh sách, bao gồm `Model` hoặc layout tương ứng.
-3. Chọn định dạng xuất **PDF** hoặc **PNG**.
-4. (Tùy chọn) Mở **Options** để cấu hình thời gian chờ, chu kỳ khởi động lại AutoCAD, script chạy khi khởi động, thư mục đầu ra và các thiết lập khác.
-5. Nhấn **Run → Checked** để chạy các bản vẽ được đánh dấu; hoặc chọn **Selected** / **Failed** để xử lý các nhóm tương ứng.
-6. Kiểm tra nhật ký sau khi chạy. Mỗi lần thực thi sẽ tạo nhật ký tổng kết và nhật ký chi tiết của dòng lệnh AutoCAD.
+1. Add drawings using **Add** (individual files) or **Add From Folder** (folder import, optionally including subfolders).
+2. Select the layout to export for each drawing in the list, including `Model` or the appropriate paper space layout.
+3. Choose **PDF** or **PNG** as the output format.
+4. (Optional) Open **Options** to configure timeouts, the AutoCAD restart interval, startup scripts, the output folder, and other settings.
+5. Click **Run → Checked** to process checked drawings, or select **Selected** / **Failed** to process the corresponding groups.
+6. Review the logs after execution. Each run generates a summary log and a detailed AutoCAD command-line log.
 
-### Chạy bằng dòng lệnh
+### Command-Line Execution
 
 ```bat
 DwgExportProUI.exe "C:\Projects\MyProject.bpl" run
 DwgExportProUI.exe "C:\Projects\MyProject.bpl" run exit
 ```
 
-Lệnh đầu tiên thực thi dự án đã lưu. Lệnh thứ hai thực thi dự án và tự động thoát khi hoàn tất.
+The first command executes the saved project. The second executes the project and exits automatically when processing is complete.
 
-Tính năng này hữu ích khi cần lên lịch xuất bản vẽ tự động bằng Windows Task Scheduler hoặc chạy qua file batch.
+This feature is useful for scheduling automated drawing exports through Windows Task Scheduler or running them from batch files.
 
-## Cơ chế xác định vùng in
+## How Plot-Area Detection Works
 
-Khi xuất bản vẽ từ Model Space, DwgExportPro không chỉ sử dụng `Extents` hoặc `Display` của AutoCAD. Cả hai phương pháp đều có thể bị ảnh hưởng bởi các đối tượng nằm quá xa phạm vi bản vẽ thực tế, chẳng hạn như block nhập sai vị trí hoặc điểm được đặt nhầm tại tọa độ rất lớn.
+When exporting drawings from Model Space, DwgExportPro does not rely solely on AutoCAD's `Extents` or `Display` plot-area settings. Both methods can be affected by geometry located far outside the actual drawing, such as misplaced imported blocks or points accidentally placed at extremely large coordinates.
 
-Thay vào đó, công cụ thực hiện các bước sau:
+Instead, the tool follows these steps:
 
-1. Duyệt qua tất cả đối tượng trong không gian bản vẽ đang hoạt động và thu thập khung bao thông qua COM. Bỏ qua các đối tượng đường thẳng vô hạn như `XLINE`/`RAY`, các layer bị ẩn, đóng băng hoặc không được phép in, cùng những khung bao không hợp lệ.
-2. Tính trung vị của tâm các đối tượng và MAD (độ lệch tuyệt đối trung vị). Đây là phương pháp đo độ phân tán ít bị ảnh hưởng bởi một số ít giá trị ngoại lai cực đoan.
-3. Loại bỏ các đối tượng có tâm nằm cách trung vị khoảng hơn 20 lần MAD, trừ những đối tượng có kích thước lớn, chẳng hạn như khung tên hoặc khung viền, để tránh loại nhầm các thành phần quan trọng.
-4. Tạo khung bao cuối cùng từ những đối tượng được giữ lại, bổ sung một khoảng lề nhỏ và thiết lập vùng in theo Window để căn giữa bản vẽ trên trang giấy hoặc ảnh đầu ra.
-5. Nếu kết quả xuất bị trắng, lần lượt chuyển sang vùng in `Extents`, sau đó `Display` và thử xuất lại.
+1. Iterates through all entities in the active drawing space and retrieves their bounding boxes through COM. It skips infinite-line entities such as `XLINE`/`RAY`, hidden or frozen layers, non-plottable layers, and invalid bounding boxes.
+2. Calculates the median of entity centers and the MAD (median absolute deviation). This robust measure of dispersion is less sensitive to a small number of extreme outliers.
+3. Removes entities whose centers are approximately more than 20 times the MAD away from the median, unless they are large entities, such as title blocks or borders, to avoid discarding important drawing components.
+4. Builds the final bounding box from the remaining entities, adds a small margin, and sets the plot area to `Window` to center the drawing on the output page or image.
+5. If the output is blank, falls back to `Extents`, followed by `Display`, and retries the export.
 
-Cơ chế này giúp kết quả xuất hàng loạt nhất quán hơn ngay cả với các bản vẽ có hình học không sạch, hạn chế nhu cầu căn chỉnh thủ công cho từng file.
+This approach helps produce more consistent batch exports, even for drawings containing problematic geometry, while reducing the need for manual adjustment on individual files.
 
-## Biên dịch từ mã nguồn
+## Building from Source
 
-Yêu cầu:
+Requirements:
 
 - Visual Studio 2022.
 - .NET 8.0 SDK.
 
-Mở solution trong Visual Studio, khôi phục các gói NuGet và tiến hành build.
+Open the solution in Visual Studio, restore the NuGet packages, and build the solution.
 
-## Cấu trúc dự án
+## Project Structure
 
-| Project | Mô tả |
+| Project | Description |
 |---|---|
-| `DwgExportProUI` | Ứng dụng WPF chính, chứa giao diện, điểm khởi chạy và các thành phần điều hướng. |
-| `DrawingListUC` | User Control quản lý danh sách bản vẽ, quản lý dự án, tự động hóa AutoCAD COM và bộ máy xuất PDF/PNG. |
+| `DwgExportProUI` | Main WPF application containing the UI, entry point, and navigation components. |
+| `DrawingListUC` | Drawing list user control responsible for drawing management, project management, AutoCAD COM automation, and the PDF/PNG export engine. |
 
-## Ghi nhận đóng góp
+## Credits
 
-DwgExportPro là sản phẩm phát triển dựa trên mã nguồn **ScriptPro**, ban đầu được Autodesk Developer Network phát hành:
+DwgExportPro is derived from the original **ScriptPro** source code, initially released by Autodesk Developer Network:
 
-- **Hiện đại hóa lên .NET 8.0 (bộ máy nền tảng)** — Madhukar Moogala.
-- **DwgExportPro** — quy trình xuất hàng loạt PDF/PNG, chức năng chọn layout riêng cho từng bản vẽ, cơ chế xác định vùng in có lọc đối tượng ngoại lai và các cải tiến về độ ổn định của AutoCAD COM, bao gồm luồng STA, Message Filter và xác minh trạng thái xuất thông qua file đầu ra.
+- **.NET 8.0 modernization (base engine)** — Madhukar Moogala.
+- **DwgExportPro** — batch PDF/PNG export pipeline, per-drawing layout selection, outlier-filtered plot-area detection, and AutoCAD COM reliability improvements, including a dedicated STA thread, COM Message Filter, and file-verified export status.
 
-Biểu tượng: [FatCow Free Icons](http://www.fatcow.com/free-icons).
+Icons: [FatCow Free Icons](http://www.fatcow.com/free-icons).
 
-## Giấy phép
+## License
 
-Dự án này là sản phẩm phái sinh từ mã nguồn ScriptPro, ban đầu được Autodesk, Inc. phát hành theo điều khoản cho phép sử dụng, sao chép, chỉnh sửa và phân phối dưới dạng mã đối tượng, với điều kiện giữ nguyên thông báo bản quyền và tuyên bố miễn trừ trách nhiệm ban đầu.
+This project is derived from the ScriptPro source code, originally released by Autodesk, Inc. under terms permitting the use, copying, modification, and distribution of object-code versions, provided that the original copyright notice and disclaimer are preserved.
 
-Vui lòng xem file [LICENSE](LICENSE) để biết đầy đủ các điều khoản áp dụng cho mã nguồn ScriptPro được kế thừa và những phần đã được chỉnh sửa trong dự án này.
+See the [LICENSE](LICENSE) file for the full terms applicable to both the inherited ScriptPro code and the modifications made in this repository.
 
-**Bản quyền mã nguồn gốc © 2010–2026 Autodesk, Inc.** Mã nguồn được cung cấp theo nguyên trạng, không kèm bất kỳ bảo đảm nào.
+**Original source copyright © 2010–2026 Autodesk, Inc.** The software is provided "AS IS", without warranty of any kind.
 
-Các phần chỉnh sửa và tên DwgExportPro © 2026 tác giả dự án, được phân phối theo cùng các điều khoản nêu trên.
+Modifications and the DwgExportPro name © 2026 the project author, distributed under the same terms.
